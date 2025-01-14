@@ -1,0 +1,28 @@
+version:  '3.7'
+
+services:
+  bot:
+    build: .
+    volumes:
+      - ./app/:/home/appuser/app
+      - ~/.ssh:/root/.ssh
+      - ~/.bash_history:/root/.bash_history
+    env_file:
+      - ./.env
+    depends_on:
+      - bot-db
+
+  bot-db:
+    image: mysql/mysql-server:8.0
+    restart: always
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: 1
+    volumes:
+      - db_data:/var/lib/mysql
+    env_file:
+      - ./.env
+
+volumes:
+  db_data:

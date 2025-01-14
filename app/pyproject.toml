@@ -1,0 +1,33 @@
+[tool.poetry]
+name = "travel_bot_v2"
+version = "0.1.0"
+description = ""
+authors = ["timofein"]
+readme = "README.md"
+#packages = [
+#    { include = "app" },
+#    { include = "bot_utils"},
+#]
+
+[tool.black]
+line-length = 120
+
+[tool.isort]
+line_length = 120
+multi_line_output = 3
+profile = "black"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+aiogram = "^3.1.1"
+flake8 = "^6.1.0"
+black = "^23.11.0"
+isort = "^5.12.0"
+geopy = "^2.4.0"
+aiomysql = "^0.2.0"
+cryptography = "^41.0.5"
+dateutils = "^0.6.12"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
