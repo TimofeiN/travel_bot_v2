@@ -4,10 +4,6 @@ version = "0.1.0"
 description = ""
 authors = ["timofein"]
 readme = "README.md"
-#packages = [
-#    { include = "app" },
-#    { include = "bot_utils"},
-#]
 
 [tool.black]
 line-length = 120

@@ -9,14 +9,16 @@ from aiogram.filters import Command, CommandStart, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
-from bot_utils.answers import answers
-from bot_utils.keyboards import KeyboardBuilder
-from services.destinations_service import destination_router
-from services.five_cheapest_service import five_cheapest_router
-from services.location_service import StartLocation, location_router
-from services.season_tickets_service import season_ticket_router
-from services.user_subscriptions import subscription_router
-from services.weather_service import weather_router
+from bot_utils import AnswerText, KeyboardBuilder
+from services import (
+    StartLocation,
+    destination_router,
+    five_cheapest_router,
+    location_router,
+    season_ticket_router,
+    subscription_router,
+    weather_router,
+)
 
 TOKEN = os.environ.get("BOT_TOKEN")
 
@@ -26,8 +28,8 @@ dp = Dispatcher()
 @dp.message(StateFilter(None), CommandStart())
 async def command_start_handler(message: Message, state: FSMContext) -> None:
     location_keyboard = KeyboardBuilder.location_reply_keyboard()
-    await message.answer(answers.start.format(username=message.from_user.username))
-    await message.answer(answers.city_or_location, reply_markup=location_keyboard)
+    await message.answer(AnswerText.START.format(username=message.from_user.username))
+    await message.answer(AnswerText.CITY_OR_LOCATION, reply_markup=location_keyboard)
 
     await state.set_state(StartLocation.choosing_location)
 
