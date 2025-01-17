@@ -62,8 +62,8 @@ class AviasalesAPI:
         async with ClientSession() as session:
             async with session.get(request_url) as request:
                 response = await request.json()
-                if "error" in response:
-                    print(response)
+                # if "error" in response:
+                #     print(response)
                 response_data = response.get("data", None)
                 if not response_data:
                     return None
@@ -104,14 +104,3 @@ class AviasalesAPI:
                 in_city = city_dict["cases"]["pr"]
                 country = city_dict["country_cases"]["su"]
                 return in_city, country
-
-
-# if __name__ == "__main__":
-# async def check_result_coroutine():
-#     task = asyncio.create_task(AviasalesAPI.get_five_cheapest())
-#     result = await task
-#     print(result)
-
-# asyncio.run(check_result_coroutine())
-
-# print(AviasalesAPI.get_default_dates())

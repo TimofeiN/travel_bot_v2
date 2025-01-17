@@ -4,9 +4,7 @@ import random
 from aiogram import Router
 from aiogram.types import Message
 
-from bot_utils.answers import answers
-from bot_utils.buttons import buttons
-from bot_utils.keyboards import KeyboardBuilder
+from bot_utils import AnswerText, ButtonText, KeyboardBuilder
 from data_providers.aviasales_api import AviasalesAPI
 from data_providers.weather_api import WeatherApi
 from database.db_api import DatabaseQueries
@@ -14,12 +12,7 @@ from database.db_api import DatabaseQueries
 season_ticket_router = Router()
 
 
-# @season_ticket_router.message(Command("season"))
-# async def command_season(message: Message):
-#     await season_handler(message)
-
-
-@season_ticket_router.message(lambda message: message.text == buttons.season)
+@season_ticket_router.message(lambda message: message.text == ButtonText.SEASON)
 async def season_handler(message: Message) -> None:
     ticket_list = []
     users_city = await asyncio.create_task(DatabaseQueries.get_users_city(message.from_user.id))
@@ -52,14 +45,14 @@ async def season_handler(message: Message) -> None:
         if len(ticket_list) == 5:
             break
 
-    await message.answer(answers.season)
+    await message.answer(AnswerText.SEASON)
     for ticket in ticket_list:
         subscription_data = f"subscription {origin} {ticket['destination_code']}"
         weather_city = asyncio.create_task(WeatherApi.get_weather_with_coor(ticket["lat"], ticket["lon"]))
         result = await weather_city
         parsed_result = WeatherApi.small_parse_response(result)
         reply_keyboard = KeyboardBuilder.ticket_reply_keyboard(ticket["ticket_url"], subscription_data)
-        answer_string = answers.season_weather.format(
+        answer_string = AnswerText.SEASON_WEATHER.format(
             destination=ticket["destination"],
             price=ticket["price"],
             weather=parsed_result,

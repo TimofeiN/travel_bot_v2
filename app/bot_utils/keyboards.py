@@ -1,6 +1,6 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup
 
-from .buttons import buttons
+from .bot_texts import ButtonText
 
 
 class KeyboardBuilder:
@@ -8,7 +8,7 @@ class KeyboardBuilder:
     def location_reply_keyboard() -> ReplyKeyboardMarkup:
         location_keyboard_buttons = [
             [
-                KeyboardButton(text=buttons.location, request_location=True),
+                KeyboardButton(text=ButtonText.LOCATION, request_location=True),
             ],
         ]
         return ReplyKeyboardMarkup(
@@ -31,10 +31,10 @@ class KeyboardBuilder:
     def main_reply_keyboard() -> ReplyKeyboardMarkup:
         main_keyboard_buttons = [
             [
-                KeyboardButton(text=buttons.subscriptions),
-                KeyboardButton(text=buttons.five_cheapest),
-                KeyboardButton(text=buttons.weather),
-                KeyboardButton(text=buttons.season),
+                KeyboardButton(text=ButtonText.SUBSCRIPTIONS),
+                KeyboardButton(text=ButtonText.FIVE_CHEAPEST),
+                KeyboardButton(text=ButtonText.WEATHER),
+                KeyboardButton(text=ButtonText.SEASON),
             ],
         ]
         return ReplyKeyboardMarkup(
@@ -47,8 +47,8 @@ class KeyboardBuilder:
     def ticket_reply_keyboard(ticket_url: str, subscription_data: str = None) -> InlineKeyboardMarkup:
         ticket_keyboard_buttons = [
             [
-                InlineKeyboardButton(text=buttons.buy, url=ticket_url),
-                InlineKeyboardButton(text=buttons.subscribe, callback_data=subscription_data),
+                InlineKeyboardButton(text=ButtonText.BUY, url=ticket_url),
+                InlineKeyboardButton(text=ButtonText.SUBSCRIBE, callback_data=subscription_data),
             ],
         ]
         return InlineKeyboardMarkup(inline_keyboard=ticket_keyboard_buttons)
@@ -56,7 +56,7 @@ class KeyboardBuilder:
     @staticmethod
     def delete_subscription(data) -> InlineKeyboardMarkup:
         delete_subscription_keyboard = [
-            [InlineKeyboardButton(text=buttons.unsubscribe, callback_data=data)],
+            [InlineKeyboardButton(text=ButtonText.UNSUBSCRIBE, callback_data=data)],
         ]
         return InlineKeyboardMarkup(inline_keyboard=delete_subscription_keyboard)
 
@@ -64,8 +64,8 @@ class KeyboardBuilder:
     def weather_reply_keyboard() -> ReplyKeyboardMarkup:
         weather_keyboard = [
             [
-                KeyboardButton(text=buttons.weather_in_your_city),
-                KeyboardButton(text=buttons.weather_in_any_city),
+                KeyboardButton(text=ButtonText.WEATHER_IN_YOUR_CITY),
+                KeyboardButton(text=ButtonText.WEATHER_IN_ANY_CITY),
             ],
         ]
         return ReplyKeyboardMarkup(keyboard=weather_keyboard, resize_keyboard=True)
@@ -73,6 +73,6 @@ class KeyboardBuilder:
     @staticmethod
     def season_reply_keyboard() -> ReplyKeyboardMarkup:
         season_keyboard = [
-            [KeyboardButton(text=buttons.season)],
+            [KeyboardButton(text=ButtonText.SEASON)],
         ]
         return ReplyKeyboardMarkup(keyboard=season_keyboard, resize_keyboard=True)

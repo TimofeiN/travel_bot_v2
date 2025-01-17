@@ -21,9 +21,3 @@ class AirportFinder:
                 nearest_airport = airport_name
                 nearest_city_code = city_code
         return nearest_airport, nearest_city_code
-
-
-if __name__ == "__main__":
-    airports_json_file = "../database/airports.json"
-    user_coords = (59.984078, 30.385342)
-    print(AirportFinder.find_nearest_airport(user_coords))

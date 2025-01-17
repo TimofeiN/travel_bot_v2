@@ -1,4 +1,3 @@
-import asyncio
 import datetime
 import os
 
@@ -50,7 +49,7 @@ class DatabaseQueries:
                 return result
 
     @classmethod
-    async def insert_new_user(cls, user_id, username, chat_id, city_id):
+    async def user_update_or_create(cls, user_id, username, chat_id, city_id):
         async with aiomysql.connect(**cls.CONNECTION_CONFIG) as connection:
             async with connection.cursor() as cursor:
                 await cursor.execute(
@@ -127,13 +126,3 @@ class DatabaseQueries:
                 result = await cursor.fetchone()
                 await cursor.close()
                 return result
-
-
-if __name__ == "__main__":
-
-    async def check_result_coroutine():
-        test_task = await asyncio.create_task(DatabaseQueries.cities_where_the_season())
-
-        print(test_task)
-
-    asyncio.run(check_result_coroutine())
