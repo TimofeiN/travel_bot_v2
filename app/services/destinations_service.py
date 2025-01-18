@@ -68,9 +68,9 @@ async def choose_limit(message: Message, state: FSMContext) -> Optional[Message]
         return await message.answer(AnswerText.NO_TICKETS)
 
     for destination in result:
-        ticket_url = destination.get("link")
-        price = destination.get("price")
-        destination_code = destination.get("destination")
+        ticket_url = destination.link
+        price = destination.price
+        destination_code = destination.destination
         destination_name = DESTINATION_MAP.get(destination_code)
 
         reply_keyboard = KeyboardBuilder.ticket_reply_keyboard(ticket_url)

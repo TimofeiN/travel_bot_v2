@@ -1,11 +1,9 @@
-import os
-
 from aiohttp import ClientSession
+
+from config.settings import OPEN_WEATHER_TOKEN
 
 
 class WeatherApi:
-    TOKEN = os.environ.get("OPEN_WEATHER_TOKEN")
-
     weather_icon = {
         "Clear": "\U00002600",
         "Clouds": "\U00002601",
@@ -45,7 +43,7 @@ class WeatherApi:
         async with ClientSession() as session:
             async with session.get(
                 f"https://api.openweathermap.org/data/2.5/weather?"
-                f"lat={lat}&lon={lon}&appid={cls.TOKEN}&units=metric&lang=ru"
+                f"lat={lat}&lon={lon}&appid={OPEN_WEATHER_TOKEN}&units=metric&lang=ru"
             ) as response:
                 data = await response.json()
                 return data
@@ -54,7 +52,8 @@ class WeatherApi:
     async def get_weather(cls, city):
         async with ClientSession() as session:
             async with session.get(
-                f"https://api.openweathermap.org/data/2.5/weather?q={city}&appid={cls.TOKEN}&units=metric&lang=ru"
+                f"https://api.openweathermap.org/data/2.5/weather?"
+                f"q={city}&appid={OPEN_WEATHER_TOKEN}&units=metric&lang=ru"
             ) as response:
                 data = await response.json()
                 return data
