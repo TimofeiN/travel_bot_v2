@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import os
 import sys
 
 from aiogram import Bot, Dispatcher, F
@@ -10,6 +9,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
 from bot_utils import AnswerText, KeyboardBuilder
+from config.settings import BOT_TOKEN
 from services import (
     StartLocation,
     destination_router,
@@ -19,8 +19,6 @@ from services import (
     subscription_router,
     weather_router,
 )
-
-TOKEN = os.environ.get("BOT_TOKEN")
 
 dp = Dispatcher()
 
@@ -46,7 +44,7 @@ async def cancel_handler(message: Message, state: FSMContext) -> None:
 
 
 async def main() -> None:
-    bot = Bot(TOKEN, parse_mode=ParseMode.HTML)
+    bot = Bot(BOT_TOKEN, parse_mode=ParseMode.HTML)
     dp.include_router(location_router)
     dp.include_router(five_cheapest_router)
     dp.include_router(destination_router)

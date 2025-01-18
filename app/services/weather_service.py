@@ -8,7 +8,7 @@ from aiogram.types import Message
 
 from bot_utils import AnswerText, ButtonText, KeyboardBuilder
 from data_providers.weather_api import WeatherApi
-from database.db_api import DatabaseQueries
+from database import DatabaseAPI
 
 weather_router = Router()
 
@@ -30,15 +30,15 @@ async def weather_handler(message: Message) -> None:
 
 @weather_router.message(lambda message: message.text == ButtonText.WEATHER_IN_YOUR_CITY)
 async def your_city(message: Message):
-    users_city_coords = await asyncio.create_task(DatabaseQueries.get_users_city(message.from_user.id))
+    user_city = await DatabaseAPI.get_user_city(message.from_user.id)
     weather_your_city = asyncio.create_task(
         WeatherApi.get_weather_with_coor(
-            users_city_coords[1],
-            users_city_coords[2],
+            lat=user_city.latitude,
+            lon=user_city.longitude,
         )
     )
     result = await weather_your_city
-    parsed_result = WeatherApi.parse_response(result, users_city_coords[0])
+    parsed_result = WeatherApi.parse_response(result, user_city.name)
     await message.reply(
         AnswerText.WEATHER_IN_YOUR_CITY.format(result=parsed_result),
         reply_markup=KeyboardBuilder.main_reply_keyboard(),

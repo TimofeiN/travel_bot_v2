@@ -1,16 +1,17 @@
 import datetime
-import os
 
 import aiomysql
+
+from config import settings
 
 
 class DatabaseQueries:
     CONNECTION_CONFIG = {
-        "db": os.environ.get("MYSQL_DATABASE"),
+        "db": settings.MYSQL_DATABASE,
         "port": 3306,
         "host": "bot-db",
-        "user": os.environ.get("MYSQL_USER"),
-        "password": os.environ.get("MYSQL_PASSWORD"),
+        "user": settings.MYSQL_USER,
+        "password": settings.MYSQL_PASSWORD,
         "autocommit": True,
     }
 
@@ -122,7 +123,10 @@ class DatabaseQueries:
     async def city_by_code(cls, city_code):
         async with aiomysql.connect(**cls.CONNECTION_CONFIG) as connection:
             async with connection.cursor() as cursor:
-                await cursor.execute(f"SELECT city_name_ru, lat, lon FROM cities WHERE city_code = '{city_code}'")
+                await cursor.execute(
+                    f"SELECT city_name_eng, city_code, country_code, lat, lon "
+                    f"FROM cities WHERE city_code = '{city_code}'"
+                )
                 result = await cursor.fetchone()
                 await cursor.close()
                 return result

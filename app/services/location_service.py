@@ -1,6 +1,5 @@
 import asyncio
 from dataclasses import asdict, dataclass
-from typing import Any
 
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
@@ -9,7 +8,7 @@ from aiogram.types import CallbackQuery, Message
 
 from bot_utils import AirportFinder, AnswerText, KeyboardBuilder
 from data_providers.aviasales_api import AviasalesAPI
-from database.db_api import DatabaseQueries
+from database import Airport, City, DatabaseAPI
 
 
 @dataclass
@@ -37,20 +36,20 @@ class LocationProvidedService:
 
     @staticmethod
     async def process_location_answer(
-        count_airports_response: list[Any],
+        city_airports: list[Airport],
         message: Message,
         state: FSMContext,
         in_city: str,
         country: str,
         airport_name: str,
     ) -> None:
-        if len(count_airports_response) == 1:
+        if len(city_airports) == 1:
             await message.answer(
                 AnswerText.LOCATION.format(in_city=in_city, country=country, airport=airport_name),
                 reply_markup=KeyboardBuilder.main_reply_keyboard(),
             )
         else:
-            airports_list = [name[0] for name in count_airports_response]
+            airports_list = [airport.name for airport in city_airports]
             airports_text = ", ".join(airports_list)
             answer_text = AnswerText.LOCATION_MANY.format(
                 in_city=in_city,
@@ -67,19 +66,18 @@ class LocationProvidedService:
         user_data = cls.get_user_data_from_message(message)
         user_coordinates = (message.location.latitude, message.location.longitude)
 
-        airport_name, city_code = await AirportFinder.find_nearest_airport(user_coordinates)
-        in_city, country = await AviasalesAPI.get_city_names_with_code(city_code)
-        count_airports_response = await DatabaseQueries.count_airports_in_city_by_code(city_code)
-        city_id = count_airports_response[0][3]
+        airport = await AirportFinder.find_closest_airport(user_coordinates)
+        in_city, country = await AviasalesAPI.get_city_names_with_code(airport.city_code)
+        city_airports = await DatabaseAPI.get_city_airports(airport.city_code)
 
-        asyncio.create_task(DatabaseQueries.user_update_or_create(**asdict(user_data), city_id=city_id))
+        asyncio.create_task(DatabaseAPI.user_update_or_create(**asdict(user_data), city_id=airport.city_id))
         await cls.process_location_answer(
-            count_airports_response=count_airports_response,
+            city_airports=city_airports,
             message=message,
             state=state,
             in_city=in_city,
             country=country,
-            airport_name=airport_name,
+            airport_name=airport.name,
         )
 
 
@@ -107,45 +105,43 @@ class CityInputService:
         )
 
     @staticmethod
-    async def process_select_from_two_answer(cities: list[tuple[Any]], state: FSMContext, message: Message) -> None:
-        city_one = cities[0]
-        city_two = cities[1]
-        await state.update_data({city_one[1]: city_one[0], city_two[1]: city_two[0]})
+    async def process_select_from_two_answer(cities: list[City], state: FSMContext, message: Message) -> None:
+        state_data = {city.code: city.name for city in cities}
+        await state.update_data(state_data)
+
         await message.answer(
             text=AnswerText.TWO_CITIES,
-            reply_markup=KeyboardBuilder.location_two_cities_keyboard(city_one, city_two),
+            reply_markup=KeyboardBuilder.location_two_cities_keyboard(cities),
         )
         await state.set_state(StartLocation.choosing_city)
 
     @classmethod
     async def process_one_city_answer(
-        cls, cities: list[tuple[Any]], user_data: UserData, message: Message, state: FSMContext
+        cls, city: City, user_data: UserData, message: Message, state: FSMContext
     ) -> None:
-        city_name = cities[0][0]
-        city_code = cities[0][1]
-        count_airports_response = await DatabaseQueries.count_airports_in_city_by_code(city_code)
-        city_id = count_airports_response[0][3]
-        asyncio.create_task(DatabaseQueries.user_update_or_create(**asdict(user_data), city_id=city_id))
+        city_airports = await DatabaseAPI.get_city_airports(city.code)
 
-        if len(count_airports_response) > 1:
-            airports_list = [name[2] for name in count_airports_response]
+        first_airport = city_airports[0]
+        asyncio.create_task(DatabaseAPI.user_update_or_create(**asdict(user_data), city_id=first_airport.city_id))
+
+        if len(city_airports) > 1:
+            airports_list = [airport.name for airport in city_airports]
             airports_text = ", ".join(airports_list)
-            await cls._answer_multi_airports_found(message, city_name, airports_text)
+            await cls._answer_multi_airports_found(message, city.name, airports_text)
         else:
-            airport_name = count_airports_response[0][2]
-            await cls._answer_one_airport_found(message, city_name, airport_name)
+            await cls._answer_one_airport_found(message, city.name, first_airport.name)
 
         await state.clear()
 
     @classmethod
     async def handle_city_input(cls, message: Message, state: FSMContext) -> None:
         user_data = LocationProvidedService.get_user_data_from_message(message)
-        cities = await DatabaseQueries.find_airports_by_city_name(message.text)
+        cities = await DatabaseAPI.get_cities_by_name(city_name=message.text)
 
         if not cities:
             await cls.handle_city_not_found(message)
         elif len(cities) == 1:
-            await cls.process_one_city_answer(cities=cities, user_data=user_data, message=message, state=state)
+            await cls.process_one_city_answer(city=cities[0], user_data=user_data, message=message, state=state)
         else:
             await cls.process_select_from_two_answer(cities, state, message)
 
@@ -154,19 +150,18 @@ class CityInputService:
         user_data = LocationProvidedService.get_user_data_from_callback(callback)
         city_code = callback.data
 
-        count_airports_response = await DatabaseQueries.count_airports_in_city_by_code(city_code)
-        city_id = count_airports_response[0][3]
-        asyncio.create_task(DatabaseQueries.user_update_or_create(**asdict(user_data), city_id=city_id))
+        city_airports = await DatabaseAPI.get_city_airports(city_code)
+        first_airport = city_airports[0]
+        asyncio.create_task(DatabaseAPI.user_update_or_create(**asdict(user_data), city_id=first_airport.city_id))
 
         state_data = await state.get_data()
         city_name = state_data.get(city_code)
 
-        if len(count_airports_response) == 1:
-            airport_name = count_airports_response[0][2]
-            await cls._answer_one_airport_found(callback.message, city_name, airport_name)
+        if len(city_airports) == 1:
+            await cls._answer_one_airport_found(callback.message, city_name, first_airport.name)
 
         else:
-            airports_list = [row[0] for row in count_airports_response]
+            airports_list = [airport.name for airport in city_airports]
             airports_text = ", ".join(airports_list)
             await cls._answer_multi_airports_found(callback.message, city_name, airports_text)
 

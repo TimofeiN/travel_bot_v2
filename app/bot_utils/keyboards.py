@@ -1,5 +1,7 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup
 
+from database import City
+
 from .bot_texts import ButtonText
 
 
@@ -18,11 +20,11 @@ class KeyboardBuilder:
         )
 
     @staticmethod
-    def location_two_cities_keyboard(city_one: tuple, city_two: tuple) -> InlineKeyboardMarkup:
+    def location_two_cities_keyboard(cities: list[City]) -> InlineKeyboardMarkup:
         ticket_keyboard_buttons = [
             [
-                InlineKeyboardButton(text=f"{city_one[0]} ({city_one[2]})", callback_data=city_one[1]),
-                InlineKeyboardButton(text=f"{city_two[0]} ({city_two[2]})", callback_data=city_two[1]),
+                InlineKeyboardButton(text=f"{city.name} ({city.country_code})", callback_data=city.code)
+                for city in cities
             ],
         ]
         return InlineKeyboardMarkup(inline_keyboard=ticket_keyboard_buttons)
