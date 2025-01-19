@@ -1,65 +1,112 @@
 import asyncio
 import logging
 import random
+from typing import Final
 
 from aiogram import Router
 from aiogram.types import Message
 
 from bot_utils import AnswerText, ButtonText, KeyboardBuilder
-from data_providers.aviasales_api import AviasalesAPI
+from data_providers.aviasales_api import AviasalesAPI, TicketResponse
 from data_providers.weather_api import WeatherApi
-from database import DatabaseAPI
-from database.db_api import DatabaseQueries
+from database import City, DatabaseAPI
+
+NUMBER_OF_TICKETS: Final[int] = 5
+TRUE_STRING: Final[str] = "true"
 
 log = logging.getLogger(__name__)
-season_ticket_router = Router()
 
 
-@season_ticket_router.message(lambda message: message.text == ButtonText.SEASON)
-async def season_handler(message: Message) -> None:
-    ticket_list = []
-    user_city = await DatabaseAPI.get_user_city(message.from_user.id)
-    summer_season_cities = await DatabaseQueries.cities_where_the_season()
-    log.info(len(summer_season_cities))
-    random_cities_where_season = random.sample(summer_season_cities, len(summer_season_cities))
+class SeasonService:
+    @staticmethod
+    async def _request_api(batch: list[City], user_city: City, default_date: str) -> list[list[TicketResponse]]:
+        ticket_tasks = []
 
-    for city in random_cities_where_season:
+        for city in batch:
+            request_url = AviasalesAPI.create_custom_request_url(
+                origin=user_city.code,
+                destination=city.code,
+                departure_date=default_date,
+                unique=TRUE_STRING,
+            )
+            ticket_tasks.append(asyncio.create_task(AviasalesAPI.get_one_city_price(request_url=request_url)))
+
+        return await asyncio.gather(*ticket_tasks, return_exceptions=True)
+
+    @staticmethod
+    def _prepare_ticket_response(
+        batch: list[City], tickets_response: list[list[TicketResponse]]
+    ) -> tuple[list[City], list[TicketResponse]]:
+        database_cities = []
+        tickets = []
+        batch_map = {city.code: city for city in batch}
+
+        for ticket_obj in tickets_response:
+            if not ticket_obj or isinstance(ticket_obj[0], Exception) or ticket_obj[0].destination is None:
+                continue
+            ticket = ticket_obj[0]
+            city = batch_map.get(ticket.destination)
+            if city:
+                tickets.append(ticket)
+                database_cities.append(city)
+
+        return database_cities, tickets
+
+    @classmethod
+    async def _get_available_tickets(
+        cls, user_city: City, cities: list[City]
+    ) -> tuple[list[City], list[TicketResponse]]:
         default_date = AviasalesAPI.get_default_dates()
-        request_url = AviasalesAPI.create_custom_request_url(
-            origin=user_city.code,
-            destination=city[0],
-            departure_date=default_date,
-            unique="true",
-            limit=1,
+        database_cities = []
+        tickets = []
+
+        while cities and len(tickets) < NUMBER_OF_TICKETS:
+            range_number = min(NUMBER_OF_TICKETS, len(cities))
+            batch = [cities.pop() for _ in range(range_number)]
+            if not batch:
+                continue
+
+            tickets_response = await cls._request_api(batch, user_city, default_date)
+            if not tickets_response:
+                continue
+
+            database_batch, ticket_batch = cls._prepare_ticket_response(batch, tickets_response)
+            database_cities.extend(database_batch)
+            tickets.extend(ticket_batch)
+
+        return database_cities, tickets
+
+    @staticmethod
+    async def _send_season_messages(
+        message: Message, database_cities: list[City], tickets: list[TicketResponse], user_city: City
+    ) -> None:
+        for city, ticket in zip(database_cities, tickets):
+            weather_response = await WeatherApi.get_weather_with_coor(city.latitude, city.longitude)
+            weather_data = WeatherApi.small_parse_response(weather_response)
+            subscription_data = f"subscription {user_city.code} {ticket.destination}"
+
+            reply_keyboard = KeyboardBuilder.ticket_reply_keyboard(ticket.link, subscription_data)
+            answer_string = AnswerText.YOU_CAN_FLY.format(
+                destination=city.name,
+                price=ticket.price,
+                weather=weather_data,
+            )
+            await message.answer(answer_string, reply_markup=reply_keyboard)
+
+    @classmethod
+    async def season_handler(cls, message: Message) -> None:
+        user_city = await DatabaseAPI.get_user_city(message.from_user.id)
+        summer_season_cities = await DatabaseAPI.get_summer_season_cities()
+        random.shuffle(summer_season_cities)
+        log.info(f"Fetched {len(summer_season_cities)} season cities.")
+
+        database_cities, tickets = await cls._get_available_tickets(user_city, summer_season_cities)
+
+        await message.answer(AnswerText.SEASON)
+        await cls._send_season_messages(
+            message=message, database_cities=database_cities, tickets=tickets, user_city=user_city
         )
 
-        response = asyncio.create_task(AviasalesAPI.get_one_city_price(request_url=request_url))
-        result = await response
-        if result:
-            log.info(result)
-            ticket = {
-                "ticket_url": result[0].link,
-                "price": result[0].price,
-                "destination": city[1],
-                "lat": city[2],
-                "lon": city[3],
-                "destination_code": city[0],
-            }
-            ticket_list.append(ticket)
-            if len(ticket_list) == 5:
-                break
 
-    await message.answer(AnswerText.SEASON)
-    for ticket in ticket_list:
-        subscription_data = f"subscription {user_city.code} {ticket['destination_code']}"
-        weather_city = asyncio.create_task(WeatherApi.get_weather_with_coor(ticket["lat"], ticket["lon"]))
-        result = await weather_city
-        parsed_result = WeatherApi.small_parse_response(result)
-        reply_keyboard = KeyboardBuilder.ticket_reply_keyboard(ticket["ticket_url"], subscription_data)
-        answer_string = AnswerText.SEASON_WEATHER.format(
-            destination=ticket["destination"],
-            price=ticket["price"],
-            weather=parsed_result,
-        )
-
-        await message.answer(answer_string, reply_markup=reply_keyboard)
+season_ticket_router = Router()
+season_ticket_router.message.register(SeasonService.season_handler, lambda message: message.text == ButtonText.SEASON)

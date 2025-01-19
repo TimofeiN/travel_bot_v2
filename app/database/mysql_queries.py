@@ -63,7 +63,7 @@ AND arrival_city_code = %s;
 
 GET_SEASON_CITIES_QUERY = """
 SELECT
-    c.city_code, c.city_name_ru, c.lat, c.lon
+    c.city_name_eng, c.city_code, c.country_code, c.lat, c.lon
 FROM seasons s
 JOIN cities c ON s.country_id = c.country_id
 """
