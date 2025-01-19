@@ -9,11 +9,11 @@ class StringEnum(str, Enum):
 class AnswerText(StringEnum):
     CHEAPEST = "The cheapest tickets:"
     YOU_CAN_FLY = "You can fly to {destination} for {price} RUB.\n {weather}"
-    SUBSCRIBE = "You have successfully subscribed!"
+    SUBSCRIBED = "You have successfully subscribed!"
     NO_TICKETS = "No tickets available for the selected destination."
 
     DESTINATION = "Choose a destination:"
-    LIMIT = "How many search results to show?\n From 1 to 10."
+    DESTINATIONS_LIMIT = "How many search results to show?\n From 1 to 10."
     WRONG_LIMIT = "Please enter a number between 1 and 10."
 
     START = "Hello, {username}"
@@ -42,7 +42,7 @@ class AnswerText(StringEnum):
 
     ACTIONS = "Choose an action:"
     SEASON = "You can fly during the summer season:"
-    SEASON_WEATHER = "You can fly to {destination} for {price}\n {weather}"
+    SEASON_WEATHER = "You can fly to {destination} for {price} RUB.\n {weather}"
 
     SUBSCRIPTIONS = "Your subscriptions:\n"
     SUBSCRIPTION = "From {origin} to {arrival}"

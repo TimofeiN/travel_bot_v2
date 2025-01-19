@@ -120,7 +120,7 @@ class DatabaseAPI:
         query = initial_query
         current_month = datetime.now().month
         month_column = f"s.month_{current_month}"
-        query += f"WHERE {month_column} = %s;"
+        query += f" WHERE {month_column} = %s;"
         return query
 
     @classmethod
